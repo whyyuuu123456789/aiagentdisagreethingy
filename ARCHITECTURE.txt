@@ -1,0 +1,664 @@
+========================================================================================
+LUNGO COUNCIL: ARCHITECTURE OVERVIEW
+========================================================================================
+
+Four autonomous coffee-buying agents with competing goals negotiate one purchasing decision
+with no central decision-maker. Built as a "Level 3: Collective intelligence" extension of
+coffeeAGNTCY's Lungo demo (https://github.com/agntcy/coffeeAgntcy).
+
+Contents
+   1. What the system does
+   2. Big picture
+   3. Repository layout
+   4. The market model (market.py)
+   5. The agents (agents.py)
+   6. Messaging (bus.py)
+   7. The deliberation protocol (protocol.py)
+   8. New information (events)
+   9. The planner (solver.py)
+  10. Baselines and the scorecard (baselines.py)
+  11. Scenarios (scenarios.py)
+  12. Running scenarios (run.py)
+  13. Randomized evaluation (evaluate.py)
+  14. Optional LLM narration (narrate.py)
+  15. AGNTCY integration (cards.py)
+  16. Tests
+  17. Key design decisions
+  18. How the design meets the project brief
+  19. Limitations and next steps
+  20. Commands
+
+
+----------------------------------------------------------------------------------------
+1. WHAT THE SYSTEM DOES
+----------------------------------------------------------------------------------------
+
+In coffeeAGNTCY's Lungo demo, one supervisor agent asks the coffee farms for yields and then
+decides alone. The council removes that supervisor. Four stakeholder agents must agree on
+how to split one green-coffee order (1,000 lb by default) across the farms listed in a
+market directory, and no component decides for them.
+
+  Procurement (Cost)    wants the lowest average price
+  Quality (Sommelier)   wants the highest average cup score
+  Sustainability        wants low carbon emissions and a high certified share
+  Supply Risk           wants on-time delivery and an order spread across origins
+
+These goals conflict. The cheapest farm (Vietnam) has the lowest cup score and the highest
+carbon, and it is not certified. The best coffee (Colombia, Ethiopia) costs the most.
+
+How good a plan is for each agent is public: the scoring formulas are shared, so anyone can
+score any plan for anyone. What each agent needs is private: the score it currently insists
+on (its "bar", which falls each round toward a private floor) and one hard limit it will
+veto over. The only way to learn these is to negotiate.
+
+A negotiation ends in one of three ways:
+
+  CONSENSUS             all four agents independently choose and commit to the same plan
+  PROCEED_WITH_DISSENT  for a small, reversible order, 3 of 4 go ahead and the fourth
+                        agent's objection is recorded
+  ESCALATE              the decision goes to a human, with the colliding limits or the best
+                        options and who objects to each
+
+The system is pure standard-library Python 3.12+. It needs no API key, network or Docker,
+and the same inputs always produce the same transcript. An LLM can optionally put the
+agents' messages into words, but it never changes a decision.
+
+
+----------------------------------------------------------------------------------------
+2. BIG PICTURE
+----------------------------------------------------------------------------------------
+
+           world events (frost, shipment failure, new supplier)
+                                     |
+                                     v
+  Market directory (market.py): farms register, change price, capacity or risk, or drop out
+                                     ^
+                                     |  agents discover farms and score plans with the
+                                     |  same public formulas
+       +--------------+--------------+--------------+--------------+
+       | Procurement  | Quality      | Sustain-     | Supply Risk  |
+       | (Cost)       | (Sommelier)  | ability      |              |
+       +--------------+--------------+--------------+--------------+
+                                     |
+                                     |  publish and subscribe: every agent receives
+                                     v  every message
+  Shared topic "lungo/council/procurement" (bus.py). Its log is the public record.
+  The bus only delivers messages; it never decides.
+
+  The deliberation loop (protocol.py) runs the rounds, injects scheduled events and checks
+  the stopping rules against the public record. It never picks the plan.
+
+Every round, each agent:
+  1. proposes the plan that is best for itself while closing the gaps the others
+     announced, and announces its current bar;
+  2. votes on every proposal: APPROVE, REJECT ("I need at least x") or VETO, which reveals
+     its hard limit to everyone;
+  3. applies the same public selection rule to the round's record by itself and commits to
+     the result. Consensus means all four commitments are identical.
+
+
+----------------------------------------------------------------------------------------
+3. REPOSITORY LAYOUT
+----------------------------------------------------------------------------------------
+
+  README.md                overview, results and lessons learned
+  ARCHITECTURE.txt         this document
+  council/
+    market.py              farms, the market directory, plan helpers, the four public scores
+    agents.py              StakeholderAgent and HardConstraint; the default four-agent council
+    protocol.py            Deliberation (the round loop and stopping rules), Event, Outcome
+    bus.py                 Message and InProcessBus (topic publish/subscribe, public log)
+    solver.py              the deterministic search every agent and baseline uses to plan
+    baselines.py           weighted-sum optimizer, majority vote, oracle, scorecard,
+                           ground-truth checks
+    scenarios.py           the seven repeatable scenarios, from easy to impossible
+    run.py                 command line for scenarios: transcript and baseline comparison
+    evaluate.py            randomized study over hundreds of worlds, plus an ablation
+    narrate.py             optional LLM narration (litellm)
+    cards.py               writes A2A AgentCards for the four agents
+  cards/council_*.json     the generated AgentCards
+  results/                 saved outputs: scenarios.log/.json and evaluation.log/.json
+  tests/test_council.py    11 unit tests
+
+
+----------------------------------------------------------------------------------------
+4. THE MARKET MODEL (market.py)
+----------------------------------------------------------------------------------------
+
+Farm
+  id, price ($/lb), quality (SCA cup score), carbon (kg CO2e per lb), certified (yes/no),
+  delay_risk (chance a shipment is late), capacity (the largest share of the order the farm
+  can supply) and capabilities (every farm offers "green_coffee").
+
+  farm       price   cup    carbon  certified  delay risk  capacity
+  brazil     $3.10   82.0   1.10    no         8%          60%
+  colombia   $4.20   86.0   0.90    yes        10%         40%
+  vietnam    $2.40   79.0   1.40    no         15%         60%
+  honduras   $3.60   84.0   1.00    yes        12%         30%
+  ethiopia   $4.60   89.0   0.80    yes        18%         30%   (joins mid-negotiation)
+
+  The first four are listed from the start. Ethiopia registers during a negotiation in the
+  frost scenario and in the random trials that include an event.
+
+Market (the shared world state)
+  - demand_lb: the order size (1,000 lb by default; 10,000 lb in stubborn_large)
+  - a directory: register(farm), discover(capability), which returns only farms with
+    capacity left, and update_farm(id, changes)
+  - version: goes up on every change, so cached values are recomputed after an event
+  - is_supplyable(): can the listed farms still cover the whole order?
+
+Plan
+  A dict {farm: share}. Shares sum to 1 and never exceed a farm's capacity.
+
+Scores
+  For a plan, each attribute is the share-weighted average: price, cup score, carbon,
+  certified share, and on-time probability (1 - delay risk). Each average is normalized to
+  0..1 between the worst and best values the currently listed farms can achieve (found by
+  filling the best or worst farms first, up to capacity). Scores are therefore relative to
+  what the market can offer, and they shift when farms change or join.
+
+    cost_score     normalized price (lower is better)
+    quality_score  normalized cup score
+    green_score    0.5 x normalized carbon (lower is better)
+                   + 0.5 x normalized certified share
+    risk_score     0.6 x normalized on-time probability + 0.4 x diversification,
+                   where diversification = (1 - HHI) / (1 - 1/n), HHI is the sum of the
+                   squared shares and n is the number of listed farms
+
+  describe_plan() prints a plan as, for example,
+  "brazil 42%, colombia 23%, honduras 22%, vietnam 13%  | $3.38/lb, cup 83.0, ...".
+
+
+----------------------------------------------------------------------------------------
+5. THE AGENTS (agents.py)
+----------------------------------------------------------------------------------------
+
+Each StakeholderAgent holds:
+
+  public     id, title, role (which scoring function it maximizes)
+  private    floor               the lowest score it will ever accept
+             concession          how much its bar drops per round
+             constraint          the one hard limit it vetoes over
+  learned    others_bars         the bar each other agent last announced
+             known_constraints   hard limits revealed by vetoes or updates
+  internal   patience            rounds of conceding so far (halved by new information)
+  switch     listens             False in the ablation: ignore the bars others announce
+
+The default council (scenarios override some of these values):
+
+  agent     title                 hard limit (private)               floor  concession
+  cost      Procurement (Cost)    average price <= $3.70/lb          0.45   0.06
+  quality   Quality (Sommelier)   average cup score >= 83.0          0.40   0.05
+  green     Sustainability        certified share >= 35%             0.45   0.07
+  risk      Supply Risk           no origin above 50% of the order   0.50   0.05
+
+Hard limits (HardConstraint)
+  Four kinds: max_price, min_quality, min_certified and max_share. violation(plan) measures
+  how far a plan breaks the limit (0 means respected). describe() gives the sentence used in
+  veto messages, such as "average cup score must be at least 83.0".
+
+The bar
+  bar = max(floor, 1 - concession x patience). It starts at 1.0, so at first only the
+  agent's ideal plan is good enough, and it falls every round until it reaches the floor.
+
+propose()
+  Each agent searches (with the solver, section 9) for the plan that maximizes
+
+      its own score
+    - accommodation x (total shortfall below the bars the other agents announced)
+    - 50 x (violation of every hard limit it knows: its own and those revealed)
+
+  where accommodation = (0.5 + 0.5 x patience) / (number of other agents). Agents open by
+  arguing for themselves and give the others' needs more weight as talks go on. Dividing by
+  the number of others stops a crowd of demands from drowning out the agent's own goal.
+  Known hard limits are never traded away.
+
+vote(plan), on every proposal including its own
+  VETO      the plan breaks the agent's hard limit; the vote carries the limit, revealing it
+  APPROVE   the agent's score for the plan is at least its current bar
+  REJECT    anything else; the vote states the score and the need, e.g. "0.31 < needs 0.65"
+
+observe(message)
+  Runs for every message on the topic, except the agent's own. It records the bars
+  announced in PROPOSALs and the limits revealed by VETO votes and CONSTRAINT_UPDATEs. This
+  is the only way agents learn about each other.
+
+on_event(briefing)
+  New information halves patience, so bars rise again and the negotiation reopens. A private
+  briefing can change the agent's floor or hard limit. If the others already know the old
+  limit, or the briefing says to announce it, the agent publishes a CONSTRAINT_UPDATE.
+
+
+----------------------------------------------------------------------------------------
+6. MESSAGING (bus.py)
+----------------------------------------------------------------------------------------
+
+All agents publish to and subscribe to one topic, "lungo/council/procurement". Every
+subscriber receives every message, in order. The bus appends each message to a log, which
+is the public record. It only delivers messages and never decides anything.
+
+A Message has a round, sender, kind, payload (structured data) and text (human-readable).
+
+  kind               sender     payload
+  EVENT              world      title, farm updates, new farms
+  CONSTRAINT_UPDATE  an agent   its changed hard limit
+  PROPOSAL           an agent   plan, announced bar, whether it is at its floor
+  VOTE               an agent   the proposal, then APPROVE with the score, REJECT with the
+                                score and need, or VETO with the hard limit and its sentence
+  COMMIT             an agent   hash of the plan it chose
+  STALEMATE          all        everyone is at their floor with no unanimous plan
+  DECISION           all        final status and plan
+
+InProcessBus has the same publish/subscribe shape as the SLIM/NATS group messaging in
+AGNTCY's app-sdk, so agents only ever talk through a topic interface.
+
+
+----------------------------------------------------------------------------------------
+7. THE DELIBERATION PROTOCOL (protocol.py)
+----------------------------------------------------------------------------------------
+
+Deliberation(market, agents, events, max_rounds=25, supermajority=3,
+             auto_approve_limit_usd=5000)
+
+runs rounds until a stopping rule fires. Transcripts label rounds r0, r1, ...; this
+document counts them from 1, so "round 1" is r0. In this in-process build, one loop drives
+the turn order for all four agents; in a distributed deployment each agent would run the
+same steps itself.
+
+Each round:
+  1. New information: if an event is scheduled for this round, apply it (section 8).
+  2. Supply check: if the listed farms can no longer cover the order, ESCALATE.
+  3. Proposals: every agent proposes a plan and announces its bar and whether it is at its
+     floor.
+  4. Votes: every agent votes on every proposal.
+  5. Local decisions: every agent applies the same public rule to the round's record.
+     Among the plans all four approved, take the one with the largest minimum margin (each
+     agent's score minus its announced bar), breaking ties by proposer id. Bars are compared
+     as announced (rounded), so all agents compute identical margins. Each agent publishes a
+     COMMIT with a hash of its choice (SHA-256 of the rounded plan). If all four hashes
+     match, the outcome is CONSENSUS.
+  6. Stopping checks, using only public information:
+     - If the hard limits revealed so far cannot all hold at once (tested with the solver),
+       ESCALATE immediately. The outcome names the minimal colliding limits (those whose
+       removal alone would make the rest achievable) and lists the current options.
+     - If every agent has announced it is at its floor for two rounds in a row, it is a
+       stalemate (below).
+  7. Every agent's patience goes up by one, and the next round starts.
+
+If the round limit is reached, the stalemate rules apply.
+
+Stalemate
+  Rank this round's proposals by how many agents approved them, ignoring any that someone
+  vetoed. If the best remaining plan has at least 3 of 4 approvals and the order is worth
+  $5,000 or less (average price x pounds), the council goes ahead: PROCEED_WITH_DISSENT,
+  with each dissenter's objection recorded, such as "cost: 0.307 < needs 0.45". Otherwise it
+  ESCALATEs with the options: each proposal, who approved it and how the others objected.
+
+Stopping rules at a glance
+
+  situation                                                   outcome
+  all four approve a plan and commit the same hash            CONSENSUS
+  the revealed hard limits cannot all be met                  ESCALATE at once, naming them
+  all at their floors for 2 rounds, 3 of 4 back a veto-free   PROCEED_WITH_DISSENT
+    plan, and the order is worth $5,000 or less
+  the same stalemate on a bigger order, or no 3-of-4 plan     ESCALATE with the options
+  the farms can no longer cover the order                     ESCALATE (re-scope the order)
+  the round limit is reached                                  handled as a stalemate
+
+The result is an Outcome: status, reason, plan, rounds, the full message log, options for
+a human, recorded dissent and the conflicting limits.
+
+
+----------------------------------------------------------------------------------------
+8. NEW INFORMATION (EVENTS)
+----------------------------------------------------------------------------------------
+
+An Event has a round, a title, farm updates, new farms and private briefings for individual
+agents. When it fires:
+  - the market changes, so every score is renormalized against the new market;
+  - an EVENT message announces it ("NEW INFORMATION: ...");
+  - each agent runs on_event with its briefing, raising its bar again;
+  - any changed hard limits are announced with CONSTRAINT_UPDATE;
+  - the stalemate counter resets.
+
+Example: the frost event, at the start of round 4 (r3)
+  - Brazil can now supply only 20% of the order, at $3.60/lb with a 30% delay risk.
+  - Ethiopia registers in the directory (certified, cup 89, $4.60/lb).
+  - Private briefings: Supply Risk tightens its limit to 40% per origin and announces it;
+    Procurement's budget ceiling rises to $3.95/lb.
+
+run.py measures the effect of the news. It also runs the same scenario without the event
+and judges that "stale" deal against the world after the event. In frost, the stale deal
+leaves 22% of the order undeliverable and breaks Supply Risk's new limit, while the
+renegotiated deal satisfies all four agents.
+
+
+----------------------------------------------------------------------------------------
+9. THE PLANNER (solver.py)
+----------------------------------------------------------------------------------------
+
+maximize(market, objective) is a deterministic local search with no outside dependencies.
+It starts from five plans: shares proportional to capacity, plus greedy fills by lowest
+price, highest cup score, lowest carbon and lowest delay risk. From each start it keeps
+moving share from one farm to another, always taking the best improving move, with step
+sizes of 0.20, 0.10, 0.05, 0.02, 0.01 and 0.005. Every intermediate plan respects
+capacities and sums to 1. The best result is returned, rounded to 4 decimals.
+
+It is used for every agent's proposals, the feasibility check and all the baselines.
+
+
+----------------------------------------------------------------------------------------
+10. BASELINES AND THE SCORECARD (baselines.py)
+----------------------------------------------------------------------------------------
+
+Simpler ways to decide, run on the same world for comparison:
+
+  weighted_sum    A central optimizer that maximizes the average of the four public scores.
+                  It cannot see anyone's private floor or hard limit.
+  majority_vote   One shot. Each agent submits its own best plan (respecting only its own
+                  limit), each agent approves the plans that meet its limit and floor, and
+                  the plan with the most approvals wins.
+  oracle          A central planner that knows every private floor and limit and maximizes
+                  the worst-off agent's margin. An upper bound for comparison, not a
+                  realistic competitor.
+
+scorecard(plan) judges any plan against everyone's true private preferences on the final
+market: each agent's score, the minimum and mean, which hard limits it breaks, which agents
+are truly satisfied (limit respected and score at or above the floor), and how much of the
+order is undeliverable (shares above a farm's current capacity).
+
+Ground-truth checks: zopa_exists (can the oracle find a plan that satisfies all four?) and
+hard_feasible (can all four hard limits hold at once?).
+
+
+----------------------------------------------------------------------------------------
+11. SCENARIOS (scenarios.py)
+----------------------------------------------------------------------------------------
+
+A Scenario has a name, a story, a build() function that returns a fresh market and fresh
+agents (with any overrides), optional events, settings (order size, round limit) and the
+expected outcome. The expected outcome is only compared after a run, by run.py and the
+tests. Agents never see it.
+
+  scenario        difficulty                    result
+  quick_deal      easy                          CONSENSUS after 3 rounds
+  harvest         in between                    CONSENSUS after 13 rounds
+  frost           in between, new information   CONSENSUS after 11 rounds
+  hard_line       long                          CONSENSUS after 37 rounds
+  budget_clash    impossible                    ESCALATE after 1 round
+  stubborn_small  impossible                    PROCEED_WITH_DISSENT after 14 rounds
+  stubborn_large  impossible                    ESCALATE after 14 rounds
+
+  quick_deal      Harvest's limits, but every agent's bar drops 0.35 a round. Once the
+                  vetoes in round 1 reveal the hard limits, they agree in round 3, on the
+                  same plan as harvest.
+  harvest         The default council with Procurement's floor at 0.25. Procurement opens
+                  with 60% Vietnam ($2.68/lb); Quality, Sustainability and Supply Risk veto
+                  it, revealing their limits. Bars fall until all four approve: Brazil 42% /
+                  Colombia 23% / Honduras 22% / Vietnam 13% at $3.38/lb.
+  frost           Harvest plus the frost event (section 8). The agents renegotiate around
+                  the new farm: Vietnam 35% / Ethiopia 30% / Honduras 27% / Colombia 8% at
+                  $3.52/lb.
+  hard_line       Procurement's ceiling is $3.50/lb, Sustainability needs at least 50%
+                  certified, Supply Risk allows at most 40% per origin, and every bar drops
+                  only 0.02 a round (the round limit is raised to 60). All four veto in
+                  round 1. Final plan: Brazil 30% / Colombia 30% / Vietnam 20% / Honduras
+                  20% at $3.39/lb. On this world the weighted-sum optimizer and the
+                  majority vote both break Procurement's $3.50 limit.
+  budget_clash    Procurement's ceiling is $3.25/lb and Quality needs cup 84. No plan meets
+                  both, so the council escalates after round 1, naming exactly those two
+                  limits.
+  stubborn_small  The default council: Procurement's floor of 0.45 cannot be reached within
+                  the others' limits. The 1,000 lb order (about $3,400) is under $5,000, so
+                  the other three go ahead and record "cost: 0.307 < needs 0.45".
+  stubborn_large  The same disagreement on a 10,000 lb order (about $34,000). That is too
+                  big to override a stakeholder, so the council escalates with three
+                  options and the objections to each.
+
+Across quick_deal, harvest and hard_line, how fast agents give ground changes how long the
+talks take; quick_deal and harvest end on the same plan.
+
+
+----------------------------------------------------------------------------------------
+12. RUNNING SCENARIOS (run.py)
+----------------------------------------------------------------------------------------
+
+run_scenario(scenario):
+  1. builds the world and runs the Deliberation;
+  2. builds a fresh copy brought to the post-event state, then uses the scorecard to judge
+     the council's plan and the three baselines' plans on it;
+  3. records the ground truth (zopa_exists, hard_feasible);
+  4. for scenarios with events, also runs the no-event version and judges that stale plan
+     on the post-event world.
+
+Command line: python3 -m council.run <scenario|all> [--verbose] [--llm] [--json FILE]
+
+It prints a condensed transcript (events, limit updates, vetoes, the proposals in rounds 1
+and 2, and the decision; --verbose prints every message), the outcome, and a comparison
+table showing, for the council and each baseline, how many agents are satisfied, how many
+limits are broken, and the minimum and mean scores. It exits with an error code if any
+outcome differs from the expected one.
+
+results/scenarios.log and results/scenarios.json are the saved output of "run all".
+
+
+----------------------------------------------------------------------------------------
+13. RANDOMIZED EVALUATION (evaluate.py)
+----------------------------------------------------------------------------------------
+
+python3 -m council.evaluate --trials 300 --json results/evaluation.json
+
+Each trial builds a random world from a seed (seed x 1000 + trial number; the default seed
+is 7):
+  - farms: price and carbon x 0.85 to 1.15, cup score +/- 2 points, delay risk x 0.7 to
+    1.4 (capped at 50%)
+  - each agent: floor 0.15 to 0.55, concession 0.03 to 0.10 per round, and a random hard
+    limit (price ceiling $3.20 to $4.00, cup minimum 81.5 to 84.5, certified minimum 20% to
+    60%, origin maximum 35% to 60%)
+  - one trial in three: in round 3, 4 or 5, a shipment failure cuts Brazil, Vietnam or
+    Colombia to 0-20% capacity with a 35% delay risk, Ethiopia joins, and Supply Risk
+    tightens to 40% per origin
+
+Every world runs twice: normally, and as an ablation in which agents ignore the bars the
+others announce. Plans are judged against the agents' true private preferences.
+
+Saved results for 300 worlds. Ground truth: a plan all four would accept exists in 181
+worlds; in 50 the hard limits are compatible but the floors are not; in 69 the hard limits
+collide.
+
+  method                            decided   all satisfied  broke a limit  mean min score
+  council                           209/300   171            0              0.40
+  weighted-sum optimizer            300/300   2              244            0.06
+  one-shot majority vote            300/300   21             219            0.05
+  full-information oracle           300/300   181            74             0.37
+  ablation: ignore announced bars   209/300   133            0              0.36
+
+  - The council reached consensus in 93.9% of the worlds where agreement was possible
+    (170 of 181) and escalated in 100% of the worlds whose hard limits collide. It never
+    adopted a plan that broke a hard limit; the 91 worlds it did not decide went to a human.
+  - New information: in 61 event trials, deals reached before the event left 13.3% of the
+    order undeliverable on average and broke a hard limit in 26. The council's renegotiated
+    plans left nothing undeliverable and broke no limits.
+  - Listening matters: when agents ignore the announced bars, consensus in the worlds where
+    agreement was possible drops from 93.9% to 73.5%, and talks average 10.9 rounds instead
+    of 9.4.
+
+
+----------------------------------------------------------------------------------------
+14. OPTIONAL LLM NARRATION (narrate.py)
+----------------------------------------------------------------------------------------
+
+  LLM_MODEL=<model> python3 -m council.run frost --llm
+
+LLM_MODEL is any litellm model name, such as an Anthropic model (with an API key) or a
+local Ollama model like ollama_chat/llama3.1:8b. It needs the litellm package, the only
+dependency outside the standard library.
+
+Each agent gets a persona: a blunt procurement lead, a meticulous sommelier, a
+sustainability officer, a supply-chain risk manager. The LLM rewrites only the text of
+PROPOSAL and VOTE messages, in one or two first-person sentences that keep every number.
+Plans, votes, bars and decisions are computed by the agents' code, so the outcome is
+identical with or without narration. If a call fails, the original text is kept and marked
+"(narration unavailable: ...)".
+
+Principle: the LLM narrates, the code decides. That keeps runs reproducible and prevents an
+LLM from talking the agents into an agreement their real preferences don't support.
+
+
+----------------------------------------------------------------------------------------
+15. AGNTCY INTEGRATION (cards.py)
+----------------------------------------------------------------------------------------
+
+python3 -m council.cards writes one A2A AgentCard per agent to cards/council_<id>.json, in
+the same shape as Lungo's farm cards:
+  - a name and description, such as "Council Quality (Sommelier)"
+  - one skill, "deliberate", tagged coffee, procurement, negotiation and objective:<role>
+  - SLIM as the preferred transport, at slim://<SLIM_SERVER>/lungo/agents/council_<id>,
+    plus a NATS interface on the shared topic (the SLIM_SERVER and NATS_SERVER environment
+    variables default to slim:46357 and nats:4222)
+
+A coffee exchange could discover the council agents through the AGNTCY directory the same
+way Lungo discovers farms.
+
+Not done yet: running each agent as a separate AgntcyFactory service on Lungo's
+docker-compose stack (Docker was unavailable when this was built). The agents already
+communicate only through the topic interface, but the deliberation loop currently calls
+each agent in turn inside one process. A distributed version would give each agent its own
+loop that reacts to the round's messages.
+
+
+----------------------------------------------------------------------------------------
+16. TESTS (tests/test_council.py)
+----------------------------------------------------------------------------------------
+
+python3 -m unittest discover -s tests -t .     (11 tests, a few seconds)
+
+Scenario tests
+  - every scenario reaches its expected outcome
+  - runs are deterministic: running frost twice gives an identical transcript
+  - harvest's consensus truly satisfies all four agents and breaks no limit
+  - stronger positions take longer (quick_deal, then harvest, then hard_line), and all three
+    deals still satisfy all four agents
+  - in hard_line, the weighted-sum optimizer and the majority vote break Procurement's
+    limit, and the council does not
+  - frost's plan uses Ethiopia, respects Brazil's new 20% capacity and is fully deliverable
+  - budget_clash names exactly Procurement's and Quality's limits for the human
+  - stubborn_small records the dissent and breaks no limit
+
+Protocol tests
+  - private limits start unknown and are revealed only by vetoes
+  - all commitment hashes match on consensus
+  - the scorecard flags broken limits
+
+
+----------------------------------------------------------------------------------------
+17. KEY DESIGN DECISIONS
+----------------------------------------------------------------------------------------
+
+No component chooses the plan.
+  Each agent applies the selection rule itself. Consensus means four independent choices
+  produce the same hash.
+
+Public scores, private needs.
+  Anyone can evaluate a plan for anyone, but how much each agent needs and what it will
+  never accept are private. That makes negotiation necessary, and it gives the messages
+  real information to carry.
+
+A veto explains itself.
+  "No, because the cup score must be at least 83" turns a rejection into a limit everyone
+  can plan around. A bare "no" only leads to more counter-offers.
+
+Accommodation grows with time.
+  When agents gave every announced bar full weight from round 1, Procurement proposed a plan
+  that scored 0 for itself. Scaling accommodation by time and by the number of other agents
+  keeps each agent arguing for its own goal.
+
+Different disagreements get different exits.
+  Colliding hard limits are detected at once and go to a human. Floors that can't all be
+  met only show up after the concessions run out; they can be acted on with recorded dissent
+  when the stakes are small and reversible.
+
+Determinism.
+  Every run replays byte-for-byte, which makes bugs traceable. One apparent false consensus
+  turned out to be a rounding bug in the scorecard, not a flaw in the agents.
+
+The LLM narrates; the code decides.
+  Language is optional decoration. Decisions come from the agents' logic.
+
+
+----------------------------------------------------------------------------------------
+18. HOW THE DESIGN MEETS THE PROJECT BRIEF
+----------------------------------------------------------------------------------------
+
+At least three autonomous agents with distinct objectives
+  -> Four agents, each with its own scoring function, private floor, concession rate and
+     hard limit.
+
+A real conflict, not scripted agreement
+  -> The objectives conflict by construction (cheap coffee is lower quality, uncertified
+     and higher carbon). Outcomes depend on the agents' private settings and their
+     exchanges: 91 of 300 random worlds end in escalation, and agents that ignore each
+     other's announced needs reach consensus far less often (73.5% vs 93.9%).
+
+Agents exchange evidence, challenge proposals and revise positions
+  -> Every round brings new proposals and a vote on each one. A REJECT states what the
+     agent needs, a VETO states the limit behind it, and every agent plans around what it
+     hears.
+
+The effect of new information
+  -> Events change the market and give agents private briefings. Agents raise their bars,
+     announce new limits and renegotiate (the frost scenario and 61 random event trials).
+
+No supervisor imposes the final decision
+  -> Each agent decides locally and commits. The loop only runs the rounds and checks
+     stopping rules that use public information.
+
+Compare with an individual-agent or simpler baseline
+  -> A weighted-sum central optimizer, a one-shot majority vote, a full-information
+     oracle, and a no-listening ablation.
+
+Know when to stop, preserve disagreement or seek human input
+  -> ESCALATE for colliding limits, stalemates on large orders and supply failures;
+     PROCEED_WITH_DISSENT with the objection on record for small, reversible orders.
+
+Can independent agents make better decisions together than individually?
+  -> In 300 random worlds, the council satisfied all four agents in 171, compared with 21
+     for a majority vote and 2 for a central optimizer, and it never adopted a plan that
+     broke a hard limit.
+
+
+----------------------------------------------------------------------------------------
+19. LIMITATIONS AND NEXT STEPS
+----------------------------------------------------------------------------------------
+
+- About 6% of agreement zones are missed. Every planner is a local search, and announced
+  bars lag one round behind. A better planner (an LP, or proposing the max-min plan near the
+  end) should close part of the gap.
+- The oracle and the ground-truth checks use the same local search, so "agreement exists"
+  is approximate. In one random world, the council found an agreement the oracle missed.
+- Agents report their bars honestly. A strategic agent could inflate its bar; a natural
+  extension is to cap claims at what the agent could credibly get elsewhere.
+- The bus runs in one process, and one loop drives all four agents in turn. Running them as
+  separate AGNTCY services is the remaining integration step.
+- Agents negotiate only how to split the order: there are no side payments, no price
+  negotiation with farms and no trades across several decisions.
+
+
+----------------------------------------------------------------------------------------
+20. COMMANDS
+----------------------------------------------------------------------------------------
+
+Run from the repository root.
+
+  python3 -m council.run frost                 # one scenario: transcript and comparison
+  python3 -m council.run all --verbose         # all seven scenarios, every message
+  python3 -m unittest discover -s tests -t .   # the tests
+  python3 -m council.cards                     # write the A2A AgentCards
+
+  # regenerate the saved results
+  python3 -m council.run all --json results/scenarios.json > results/scenarios.log
+  python3 -m council.evaluate --trials 300 --json results/evaluation.json \
+      > results/evaluation.log
+
+  # narrated run (needs litellm and a model, e.g. Ollama running locally)
+  LLM_MODEL=ollama_chat/llama3.1:8b python3 -m council.run frost --llm
