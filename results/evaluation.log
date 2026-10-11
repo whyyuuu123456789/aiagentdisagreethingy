@@ -1,0 +1,74 @@
+{
+  "council": {
+    "trials": 300,
+    "with_event": 93,
+    "ground_truth": {
+      "zopa": 181,
+      "no_zopa_but_feasible": 50,
+      "hard_infeasible": 69
+    },
+    "council_outcomes": {
+      "CONSENSUS": 171,
+      "PROCEED_WITH_DISSENT": 38,
+      "ESCALATE": 91
+    },
+    "consensus_when_zopa": 0.939,
+    "escalate_when_infeasible": 1.0,
+    "mean_rounds": 9.4,
+    "mean_messages": 192.8,
+    "methods": {
+      "council": {
+        "decided": 209,
+        "all_satisfied": 171,
+        "plans_violating_a_hard_constraint": 0,
+        "mean_min_score": 0.404,
+        "mean_satisfied_agents": 3.82
+      },
+      "weighted_sum": {
+        "decided": 300,
+        "all_satisfied": 2,
+        "plans_violating_a_hard_constraint": 244,
+        "mean_min_score": 0.06,
+        "mean_satisfied_agents": 2.65
+      },
+      "majority_vote": {
+        "decided": 300,
+        "all_satisfied": 21,
+        "plans_violating_a_hard_constraint": 219,
+        "mean_min_score": 0.047,
+        "mean_satisfied_agents": 2.93
+      },
+      "oracle": {
+        "decided": 300,
+        "all_satisfied": 181,
+        "plans_violating_a_hard_constraint": 74,
+        "mean_min_score": 0.371,
+        "mean_satisfied_agents": 3.4
+      }
+    },
+    "event_trials": {
+      "n": 61,
+      "stale_plan_mean_undeliverable": 0.133,
+      "stale_plan_violating": 26,
+      "council_violating": 0,
+      "council_undeliverable": 0.0
+    }
+  },
+  "ablation_no_listening": {
+    "council_outcomes": {
+      "CONSENSUS": 133,
+      "PROCEED_WITH_DISSENT": 76,
+      "ESCALATE": 91
+    },
+    "consensus_when_zopa": 0.735,
+    "mean_rounds": 10.9,
+    "mean_messages": 221.9,
+    "council_method": {
+      "decided": 209,
+      "all_satisfied": 133,
+      "plans_violating_a_hard_constraint": 0,
+      "mean_min_score": 0.364,
+      "mean_satisfied_agents": 3.64
+    }
+  }
+}

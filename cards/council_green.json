@@ -1,0 +1,44 @@
+{
+  "name": "Council Sustainability",
+  "description": "Argues for low carbon and certified sourcing; vetoes plans under the certified-share minimum.",
+  "version": "1.0.0",
+  "defaultInputModes": [
+    "application/json"
+  ],
+  "defaultOutputModes": [
+    "application/json",
+    "text"
+  ],
+  "capabilities": {
+    "streaming": false
+  },
+  "skills": [
+    {
+      "id": "deliberate",
+      "name": "Deliberate on a procurement plan",
+      "description": "Propose plans, vote APPROVE/REJECT/VETO, and commit on the shared council topic.",
+      "tags": [
+        "coffee",
+        "procurement",
+        "negotiation",
+        "objective:green"
+      ],
+      "examples": [
+        "Split a 1000 lb green coffee order across available farms."
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": false,
+  "preferred_transport": "slim",
+  "url": "slim://slim:46357/lungo/agents/council_green",
+  "additional_interfaces": [
+    {
+      "transport": "slim",
+      "url": "slim://slim:46357/lungo/agents/council_green"
+    },
+    {
+      "transport": "nats",
+      "url": "nats://nats:4222/lungo/council/procurement"
+    }
+  ]
+}

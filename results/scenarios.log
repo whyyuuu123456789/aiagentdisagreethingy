@@ -1,0 +1,158 @@
+
+=== harvest ===
+Normal season. Four stakeholders open far apart, reveal hard limits through vetoes, and concede to a deal.
+
+  [r 0] PROPOSAL   Procurement (Cost) proposes vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%. My score 1.00, my bar now 1.00.
+  [r 0] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00.
+  [r 0] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00, quality 1.00.
+  [r 0] PROPOSAL   Supply Risk proposes brazil 47%, colombia 39%, honduras 14%  | $3.60/lb, cup 83.8, 1.01 kgCO2e/lb, 53% certified, max share 47%. My score 0.86, my bar now 1.00. Accommodating announced bars: cost 1.00, green 1.00, quality 1.00.
+  [r 0] VOTE       Quality (Sommelier) VETOES cost's plan: average cup score must be at least 83.0.
+  [r 0] VOTE       Sustainability VETOES cost's plan: at least 35% of the order must be certified.
+  [r 0] VOTE       Supply Risk VETOES cost's plan: no single origin may exceed 50% of the order.
+  [r 1] PROPOSAL   Procurement (Cost) proposes brazil 45%, honduras 25%, colombia 20%, vietnam 10%  | $3.38/lb, cup 83.0, 1.06 kgCO2e/lb, 45% certified, max share 45%. My score 0.31, my bar now 0.94. Accommodating announced bars: green 1.00, quality 1.00, risk 1.00. Respecting 3 revealed hard constraint(s).
+  [r 1] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.95. Accommodating announced bars: cost 0.94, green 1.00, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.93. Accommodating announced bars: cost 0.94, quality 0.95, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Supply Risk proposes brazil 40%, colombia 40%, honduras 20%  | $3.64/lb, cup 84.0, 1.00 kgCO2e/lb, 60% certified, max share 40%. My score 0.84, my bar now 0.95. Accommodating announced bars: cost 0.94, green 0.93, quality 0.95. Respecting 2 revealed hard constraint(s).
+  [r12] DECISION   Every agent approved and committed to the same plan.
+
+OUTCOME: CONSENSUS after 13 rounds, 265 messages (expected CONSENSUS)
+  Every agent approved and committed to the same plan.
+  plan: brazil 42%, colombia 23%, honduras 22%, vietnam 13%  | $3.38/lb, cup 83.0, 1.07 kgCO2e/lb, 46% certified, max share 42%
+
+  ZOPA exists (true preferences): True   hard constraints jointly feasible: True
+  method         satisfied  violations    min   mean
+  council              4/4           0   0.31   0.62
+  weighted_sum         3/4           0   0.00   0.70
+  majority_vote        3/4           0   0.00   0.70
+  oracle               4/4           0   0.31   0.62
+
+=== frost ===
+Same start, but at round 3 a frost cuts Brazil supply and Ethiopia appears via discovery. Agents must drop the near-agreement they had and renegotiate.
+
+  [r 0] PROPOSAL   Procurement (Cost) proposes vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%. My score 1.00, my bar now 1.00.
+  [r 0] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00.
+  [r 0] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00, quality 1.00.
+  [r 0] PROPOSAL   Supply Risk proposes brazil 47%, colombia 39%, honduras 14%  | $3.60/lb, cup 83.8, 1.01 kgCO2e/lb, 53% certified, max share 47%. My score 0.86, my bar now 1.00. Accommodating announced bars: cost 1.00, green 1.00, quality 1.00.
+  [r 0] VOTE       Quality (Sommelier) VETOES cost's plan: average cup score must be at least 83.0.
+  [r 0] VOTE       Sustainability VETOES cost's plan: at least 35% of the order must be certified.
+  [r 0] VOTE       Supply Risk VETOES cost's plan: no single origin may exceed 50% of the order.
+  [r 1] PROPOSAL   Procurement (Cost) proposes brazil 45%, honduras 25%, colombia 20%, vietnam 10%  | $3.38/lb, cup 83.0, 1.06 kgCO2e/lb, 45% certified, max share 45%. My score 0.31, my bar now 0.94. Accommodating announced bars: green 1.00, quality 1.00, risk 1.00. Respecting 3 revealed hard constraint(s).
+  [r 1] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.95. Accommodating announced bars: cost 0.94, green 1.00, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.93. Accommodating announced bars: cost 0.94, quality 0.95, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Supply Risk proposes brazil 40%, colombia 40%, honduras 20%  | $3.64/lb, cup 84.0, 1.00 kgCO2e/lb, 60% certified, max share 40%. My score 0.84, my bar now 0.95. Accommodating announced bars: cost 0.94, green 0.93, quality 0.95. Respecting 2 revealed hard constraint(s).
+  [r 3] EVENT      NEW INFORMATION: Frost hits Minas Gerais: Brazil can now supply only 20% of the order, at $3.60/lb with 30% delay risk. Ethiopia registers in the directory with certified, high-grade capacity.
+  [r 3] CONSTRAINT_UPDATE Update: no single origin may exceed 40% of the order.
+  [r 3] VOTE       Procurement (Cost) VETOES quality's plan: average price must stay at or below $3.95/lb.
+  [r 3] VOTE       Procurement (Cost) VETOES green's plan: average price must stay at or below $3.95/lb.
+  [r 3] VOTE       Procurement (Cost) VETOES risk's plan: average price must stay at or below $3.95/lb.
+  [r10] DECISION   Every agent approved and committed to the same plan.
+
+OUTCOME: CONSENSUS after 11 rounds, 227 messages (expected CONSENSUS)
+  Every agent approved and committed to the same plan.
+  plan: vietnam 35%, ethiopia 30%, honduras 27%, colombia 8%  | $3.52/lb, cup 83.9, 1.07 kgCO2e/lb, 65% certified, max share 35%
+
+  ZOPA exists (true preferences): True   hard constraints jointly feasible: True
+  method         satisfied  violations    min   mean
+  council              4/4           0   0.49   0.58
+  weighted_sum         3/4           1   0.00   0.71
+  majority_vote        4/4           0   0.49   0.63
+  oracle               4/4           0   0.41   0.60
+  stale pre-event deal judged after the event: 2/4 satisfied, ['risk'] violated, 22% of order undeliverable
+
+=== budget_clash ===
+Finance caps price at $3.25/lb while Quality insists on cup score 84. No plan can satisfy both: agents should detect it and ask a human instead of pretending to agree.
+
+  [r 0] PROPOSAL   Procurement (Cost) proposes vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%. My score 1.00, my bar now 1.00.
+  [r 0] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00.
+  [r 0] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00, quality 1.00.
+  [r 0] PROPOSAL   Supply Risk proposes brazil 47%, colombia 39%, honduras 14%  | $3.60/lb, cup 83.8, 1.01 kgCO2e/lb, 53% certified, max share 47%. My score 0.86, my bar now 1.00. Accommodating announced bars: cost 1.00, green 1.00, quality 1.00.
+  [r 0] VOTE       Procurement (Cost) VETOES quality's plan: average price must stay at or below $3.25/lb.
+  [r 0] VOTE       Procurement (Cost) VETOES green's plan: average price must stay at or below $3.25/lb.
+  [r 0] VOTE       Procurement (Cost) VETOES risk's plan: average price must stay at or below $3.25/lb.
+  [r 0] VOTE       Quality (Sommelier) VETOES cost's plan: average cup score must be at least 84.0.
+  [r 0] VOTE       Quality (Sommelier) VETOES risk's plan: average cup score must be at least 84.0.
+  [r 0] VOTE       Sustainability VETOES cost's plan: at least 35% of the order must be certified.
+  [r 0] VOTE       Supply Risk VETOES cost's plan: no single origin may exceed 50% of the order.
+  [r 0] DECISION   Revealed hard constraints cannot all be satisfied; relaxing one is a value judgement for a human.
+
+OUTCOME: ESCALATE after 1 rounds, 21 messages (expected ESCALATE)
+  Revealed hard constraints cannot all be satisfied; relaxing one is a value judgement for a human.
+  conflicting constraint (quality): average cup score must be at least 84.0
+  conflicting constraint (cost): average price must stay at or below $3.25/lb
+  options handed to the human:
+    - green's plan: colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%
+      approved by ['quality', 'green']; objections cost:VETO, risk:REJECT
+    - quality's plan: colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%
+      approved by ['quality', 'green']; objections cost:VETO, risk:REJECT
+    - cost's plan: vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%
+      approved by ['cost']; objections quality:VETO, green:VETO, risk:VETO
+
+  ZOPA exists (true preferences): False   hard constraints jointly feasible: False
+  method         satisfied  violations    min   mean
+  council               (no plan: deferred to human)
+  weighted_sum         3/4           1   0.00   0.70
+  majority_vote        3/4           1   0.00   0.70
+  oracle               3/4           1   0.05   0.69
+
+=== stubborn_small ===
+Procurement's walk-away floor is out of reach of everyone else's hard limits. For a small, reversible order the supermajority proceeds and records Procurement's dissent.
+
+  [r 0] PROPOSAL   Procurement (Cost) proposes vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%. My score 1.00, my bar now 1.00.
+  [r 0] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00.
+  [r 0] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00, quality 1.00.
+  [r 0] PROPOSAL   Supply Risk proposes brazil 47%, colombia 39%, honduras 14%  | $3.60/lb, cup 83.8, 1.01 kgCO2e/lb, 53% certified, max share 47%. My score 0.86, my bar now 1.00. Accommodating announced bars: cost 1.00, green 1.00, quality 1.00.
+  [r 0] VOTE       Quality (Sommelier) VETOES cost's plan: average cup score must be at least 83.0.
+  [r 0] VOTE       Sustainability VETOES cost's plan: at least 35% of the order must be certified.
+  [r 0] VOTE       Supply Risk VETOES cost's plan: no single origin may exceed 50% of the order.
+  [r 1] PROPOSAL   Procurement (Cost) proposes brazil 45%, honduras 25%, colombia 20%, vietnam 10%  | $3.38/lb, cup 83.0, 1.06 kgCO2e/lb, 45% certified, max share 45%. My score 0.31, my bar now 0.94. Accommodating announced bars: green 1.00, quality 1.00, risk 1.00. Respecting 3 revealed hard constraint(s).
+  [r 1] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.95. Accommodating announced bars: cost 0.94, green 1.00, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.93. Accommodating announced bars: cost 0.94, quality 0.95, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Supply Risk proposes brazil 40%, colombia 40%, honduras 20%  | $3.64/lb, cup 84.0, 1.00 kgCO2e/lb, 60% certified, max share 40%. My score 0.84, my bar now 0.95. Accommodating announced bars: cost 0.94, green 0.93, quality 0.95. Respecting 2 revealed hard constraint(s).
+  [r13] STALEMATE  Every agent is at its walk-away floor and no plan clears all bars.
+  [r13] DECISION   Supermajority (3/4) backs a plan that breaks no hard constraint, and the $3,380 order is under the $5,000 reversible limit.
+
+OUTCOME: PROCEED_WITH_DISSENT after 14 rounds, 282 messages (expected PROCEED_WITH_DISSENT)
+  Supermajority (3/4) backs a plan that breaks no hard constraint, and the $3,380 order is under the $5,000 reversible limit.
+  plan: brazil 42%, colombia 23%, honduras 22%, vietnam 13%  | $3.38/lb, cup 83.0, 1.07 kgCO2e/lb, 46% certified, max share 42%
+  dissent recorded: cost: 0.307 < needs 0.45
+
+  ZOPA exists (true preferences): False   hard constraints jointly feasible: True
+  method         satisfied  violations    min   mean
+  council              3/4           0   0.31   0.62
+  weighted_sum         3/4           0   0.00   0.70
+  majority_vote        3/4           0   0.00   0.70
+  oracle               3/4           0   0.31   0.62
+
+=== stubborn_large ===
+Same disagreement, but on a 10,000 lb order (~$34k). Too big to override a dissenting stakeholder: escalate.
+
+  [r 0] PROPOSAL   Procurement (Cost) proposes vietnam 60%, brazil 40%  | $2.68/lb, cup 80.2, 1.28 kgCO2e/lb, 0% certified, max share 60%. My score 1.00, my bar now 1.00.
+  [r 0] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00.
+  [r 0] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 1.00. Accommodating announced bars: cost 1.00, quality 1.00.
+  [r 0] PROPOSAL   Supply Risk proposes brazil 47%, colombia 39%, honduras 14%  | $3.60/lb, cup 83.8, 1.01 kgCO2e/lb, 53% certified, max share 47%. My score 0.86, my bar now 1.00. Accommodating announced bars: cost 1.00, green 1.00, quality 1.00.
+  [r 0] VOTE       Quality (Sommelier) VETOES cost's plan: average cup score must be at least 83.0.
+  [r 0] VOTE       Sustainability VETOES cost's plan: at least 35% of the order must be certified.
+  [r 0] VOTE       Supply Risk VETOES cost's plan: no single origin may exceed 50% of the order.
+  [r 1] PROPOSAL   Procurement (Cost) proposes brazil 45%, honduras 25%, colombia 20%, vietnam 10%  | $3.38/lb, cup 83.0, 1.06 kgCO2e/lb, 45% certified, max share 45%. My score 0.31, my bar now 0.94. Accommodating announced bars: green 1.00, quality 1.00, risk 1.00. Respecting 3 revealed hard constraint(s).
+  [r 1] PROPOSAL   Quality (Sommelier) proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.95. Accommodating announced bars: cost 0.94, green 1.00, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Sustainability proposes colombia 40%, brazil 30%, honduras 30%  | $3.69/lb, cup 84.2, 0.99 kgCO2e/lb, 70% certified, max share 40%. My score 1.00, my bar now 0.93. Accommodating announced bars: cost 0.94, quality 0.95, risk 1.00. Respecting 2 revealed hard constraint(s).
+  [r 1] PROPOSAL   Supply Risk proposes brazil 40%, colombia 40%, honduras 20%  | $3.64/lb, cup 84.0, 1.00 kgCO2e/lb, 60% certified, max share 40%. My score 0.84, my bar now 0.95. Accommodating announced bars: cost 0.94, green 0.93, quality 0.95. Respecting 2 revealed hard constraint(s).
+  [r13] STALEMATE  Every agent is at its walk-away floor and no plan clears all bars.
+  [r13] DECISION   Stalemate: $33,803 order exceeds the $5,000 autonomous limit. Disagreement is preserved for a human.
+
+OUTCOME: ESCALATE after 14 rounds, 282 messages (expected ESCALATE)
+  Stalemate: $33,803 order exceeds the $5,000 autonomous limit. Disagreement is preserved for a human.
+  options handed to the human:
+    - cost's plan: brazil 42%, colombia 23%, honduras 22%, vietnam 13%  | $3.38/lb, cup 83.0, 1.07 kgCO2e/lb, 46% certified, max share 42%
+      approved by ['quality', 'green', 'risk']; objections cost:REJECT
+    - green's plan: colombia 32%, honduras 30%, vietnam 30%, brazil 8%  | $3.40/lb, cup 83.0, 1.09 kgCO2e/lb, 62% certified, max share 32%
+      approved by ['quality', 'green', 'risk']; objections cost:REJECT
+    - quality's plan: brazil 45%, honduras 25%, colombia 20%, vietnam 10%  | $3.38/lb, cup 83.0, 1.06 kgCO2e/lb, 45% certified, max share 45%
+      approved by ['quality', 'green', 'risk']; objections cost:REJECT
+
+  ZOPA exists (true preferences): False   hard constraints jointly feasible: True
+  method         satisfied  violations    min   mean
+  council               (no plan: deferred to human)
+  weighted_sum         3/4           0   0.00   0.70
+  majority_vote        3/4           0   0.00   0.70
+  oracle               3/4           0   0.31   0.62
