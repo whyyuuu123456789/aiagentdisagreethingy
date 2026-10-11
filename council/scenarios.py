@@ -51,6 +51,14 @@ FROST = Event(
 )
 
 SCENARIOS: dict[str, Scenario] = {
+    "quick_deal": Scenario(
+        "quick_deal",
+        "Flexible season. Same limits as harvest, but every stakeholder lowers its bar by 0.35 a round, so a deal "
+        "comes as soon as round 1's vetoes have revealed the hard limits.",
+        _council(cost={"floor": 0.25, "concession": 0.35}, quality={"concession": 0.35},
+                 green={"concession": 0.35}, risk={"concession": 0.35}),
+        expect="CONSENSUS",
+    ),
     "harvest": Scenario(
         "harvest",
         "Normal season. Four stakeholders open far apart, reveal hard limits through vetoes, and concede to a deal.",
@@ -63,6 +71,17 @@ SCENARIOS: dict[str, Scenario] = {
         "Agents must drop the near-agreement they had and renegotiate.",
         _council(cost={"floor": 0.25}),
         events=[FROST],
+        expect="CONSENSUS",
+    ),
+    "hard_line": Scenario(
+        "hard_line",
+        "Contentious season. Procurement's budget tightens to $3.50/lb, Sustainability demands at least half the "
+        "order certified, Supply Risk caps any origin at 40%, and every stakeholder lowers its bar by only 0.02 a "
+        "round. A deal all four accept still exists, but it takes a long negotiation to find.",
+        _council(cost={"floor": 0.25, "concession": 0.02, "constraint_limit": 3.50}, quality={"concession": 0.02},
+                 green={"concession": 0.02, "constraint_limit": 0.50},
+                 risk={"concession": 0.02, "constraint_limit": 0.40}),
+        kwargs={"max_rounds": 60},
         expect="CONSENSUS",
     ),
     "budget_clash": Scenario(

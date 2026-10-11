@@ -20,7 +20,7 @@ limit) are private. The only way to learn them is to negotiate.
 
 ```
 python3 -m council.run frost           # one scenario, condensed transcript + baseline comparison
-python3 -m council.run all --verbose   # all five scenarios, every proposal and vote
+python3 -m council.run all --verbose   # all seven scenarios, every proposal and vote
 python3 -m council.evaluate --trials 300 --json results/evaluation.json
 python3 -m unittest discover -s tests -t .
 python3 -m council.cards               # writes A2A AgentCards to cards/
@@ -79,17 +79,19 @@ Every round, every agent:
 | Same stalemate, but the order is large (or there's no supermajority) | **ESCALATE** with the top options and who objects to each | Overriding a stakeholder on a $34k commitment is not an agent's call. |
 | Supply can no longer cover the order | **ESCALATE** | The problem itself must be re-scoped. |
 
-## Demonstration: five repeatable scenarios
+## Demonstration: seven repeatable scenarios, from easy to impossible
 
 `python3 -m council.run all` checks each scenario against its expected outcome and exits non-zero on a mismatch.
 
-| Scenario | What happens | Outcome |
-|---|---|---|
-| `harvest` | Cost opens with 60% Vietnam ($2.68/lb). Quality, Sustainability and Risk veto it, revealing cup ≥ 83, ≥ 35% certified, and ≤ 50% per origin. Bars fall until all four approve. | CONSENSUS in 13 rounds: Brazil 42 / Colombia 23 / Honduras 22 / Vietnam 13 at $3.38/lb |
-| `frost` | At round 3 a frost cuts Brazil to 20% and raises its risk. Ethiopia registers in the directory. Risk privately tightens to ≤ 40% and announces it. Cost gets budget headroom. Agents half-reset their concessions and renegotiate around the new farm. | CONSENSUS: Vietnam 35 / Ethiopia 30 / Honduras 27 / Colombia 8 |
-| `budget_clash` | Finance caps price at $3.25 while Quality demands cup ≥ 84. | ESCALATE after **1 round**, naming exactly those two limits |
-| `stubborn_small` | Procurement's floor is unreachable given everyone else's limits. | PROCEED_WITH_DISSENT, logging "cost: 0.307 < needs 0.45" |
-| `stubborn_large` | Same, but 10,000 lb (~$34k). | ESCALATE with three options and the objections to each |
+| Scenario | Difficulty | What happens | Outcome |
+|---|---|---|---|
+| `quick_deal` | Easy | Harvest's limits, but every stakeholder lowers its bar by 0.35 a round instead of 0.05–0.07. Round 1's vetoes reveal the hard limits, and the next proposals respect them. | CONSENSUS in 3 rounds, on the same plan as `harvest` |
+| `harvest` | In between | Cost opens with 60% Vietnam ($2.68/lb). Quality, Sustainability and Risk veto it, revealing cup ≥ 83, ≥ 35% certified, and ≤ 50% per origin. Bars fall until all four approve. | CONSENSUS in 13 rounds: Brazil 42 / Colombia 23 / Honduras 22 / Vietnam 13 at $3.38/lb |
+| `frost` | In between, with new information | At round 3 a frost cuts Brazil to 20% and raises its risk. Ethiopia registers in the directory. Risk privately tightens to ≤ 40% and announces it. Cost gets budget headroom. Agents half-reset their concessions and renegotiate around the new farm. | CONSENSUS: Vietnam 35 / Ethiopia 30 / Honduras 27 / Colombia 8 |
+| `hard_line` | Long | Procurement caps price at $3.50, Sustainability demands ≥ 50% certified, Risk caps any origin at 40%, and bars drop only 0.02 a round. In round 1 every agent vetoes at least one plan. | CONSENSUS in 37 rounds: Brazil 30 / Colombia 30 / Vietnam 20 / Honduras 20 at $3.39/lb. The weighted-sum optimizer and the majority vote both break the $3.50 limit. |
+| `budget_clash` | Impossible | Finance caps price at $3.25 while Quality demands cup ≥ 84. | ESCALATE after **1 round**, naming exactly those two limits |
+| `stubborn_small` | Impossible | Procurement's floor is unreachable given everyone else's limits. | PROCEED_WITH_DISSENT, logging "cost: 0.307 < needs 0.45" |
+| `stubborn_large` | Impossible | Same, but 10,000 lb (~$34k). | ESCALATE with three options and the objections to each |
 
 Effect of new information (frost): the deal the council would have signed *without* the frost,
 judged after it, leaves **22% of the order undeliverable** and breaks Supply Risk's new limit.

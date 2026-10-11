@@ -25,6 +25,23 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(len(card["satisfied"]), 4)
         self.assertEqual(card["violated_constraints"], [])
 
+    def test_stronger_positions_take_longer_but_still_satisfy_everyone(self):
+        runs = {name: run_scenario(SCENARIOS[name]) for name in ("quick_deal", "harvest", "hard_line")}
+        self.assertLess(runs["quick_deal"]["rounds"], runs["harvest"]["rounds"])
+        self.assertLess(runs["harvest"]["rounds"], runs["hard_line"]["rounds"])
+        for name, r in runs.items():
+            with self.subTest(name):
+                card = r["comparison"]["council"]
+                self.assertEqual(len(card["satisfied"]), 4)
+                self.assertEqual(card["violated_constraints"], [])
+
+    def test_baselines_break_a_hard_limit_the_council_keeps(self):
+        comparison = run_scenario(SCENARIOS["hard_line"])["comparison"]
+        self.assertEqual(comparison["council"]["violated_constraints"], [])
+        for name in ("weighted_sum", "majority_vote"):
+            with self.subTest(name):
+                self.assertIn("cost", comparison[name]["violated_constraints"])
+
     def test_frost_plan_uses_discovered_supplier_and_respects_new_capacity(self):
         r = run_scenario(SCENARIOS["frost"])
         card = r["comparison"]["council"]
